@@ -1,0 +1,130 @@
+#!/bin/bash
+
+CORES=$(nproc)c
+CONFIG="configs/static_config.yaml"
+CONFIG_VARS="configs/config_vars.yaml"
+MODE="debug"
+PLAIN_MODE=false
+BINARY_NAME=$(basename "$(pwd)")
+BINARY="./build-${MODE}/${BINARY_NAME}"
+
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  -x, --cores CORES       Number of CPU cores (default: $(nproc))"
+    echo "  -c, --config CONFIG     Config file path (default: configs/static_config.yaml)"
+    echo "  -v, --config_vars VARS  Config vars file path (default: configs/config_vars.yaml)"
+    echo "  -m, --mode MODE         Build mode (default: debug)"
+    echo "  -p, --plain            Run in plain mode (no logging, detached to background)"
+    echo "  -h, --help             Show this help message"
+    exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -x|--cores)
+            CORES="$2"
+            shift 2
+            ;;
+        -c|--config)
+            CONFIG="$2"
+            shift 2
+            ;;
+        -v|--config_vars)
+            CONFIG_VARS="$2"
+            shift 2
+            ;;
+        -m|--mode)
+            MODE="$2"
+            shift 2
+            ;;
+        -p|--plain)
+            PLAIN_MODE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+if [[ ! -f "$CONFIG" ]]; then
+    echo "Error: Config file '$CONFIG' not found!"
+    exit 1
+fi
+
+if [[ ! -f "$CONFIG_VARS" ]]; then
+    echo "Error: Config vars file '$CONFIG_VARS' not found!"
+    exit 1
+fi
+
+if [[ ! -f "$BINARY" ]]; then
+    echo "Error: Binary '$BINARY' not found!"
+    echo "Available builds:"
+    find . -maxdepth 1 -type d -name "build-*" | sed 's/\.\///'
+    exit 1
+fi
+
+echo "Starting service with:"
+echo "  CPU cores: $CORES"
+echo "  Config: $CONFIG"
+echo "  Config vars: $CONFIG_VARS"
+echo "  Mode: $MODE"
+echo "  Binary: $BINARY"
+echo "  Plain mode: $PLAIN_MODE"
+
+export CPU_LIMIT=$CORES
+
+run_plain() {
+    local log_dir="logs"
+    local log_file="${log_dir}/${BINARY_NAME}_$(date +%Y%m%d_%H%M%S).log"
+    
+    mkdir -p "$log_dir"
+    
+    echo "Running in plain mode, logs redirected to: $log_file"
+    
+    "$BINARY" -c "$CONFIG" --config_vars="$CONFIG_VARS" > "$log_file" 2>&1 &
+    
+    local pid=$!
+    echo "Service started with PID: $pid"
+    echo "To stop the service, run: kill $pid"
+    echo "To view logs, run: tail -f $log_file"
+    
+    echo "$pid" > "${log_dir}/${BINARY_NAME}.pid"
+}
+
+run_with_logging() {
+    local pipe="/tmp/${BINARY_NAME}_log_pipe_$$"
+    local log_dir="logs"
+    local log_file="${log_dir}/${BINARY_NAME}_$(date +%Y%m%d_%H%M%S).log"
+
+    mkfifo "$pipe"
+    
+    ./scripts/human-logs.py -hl timestamp -v DEBUG \
+        --require-fields body text db_statement \
+        -skm DoStep \
+        -skfp db_statement 'SELECT 1 AS ping' \
+        -ign module link span_id task_id timezone trace_id thread_id pg_conn_id \
+              stopwath_name parent_id stopwatch_units span_ref_type dp_type \
+              stopwatch_name start_timestamp libpq_wait_result_time \
+              libpq_send_query_prepared_time db_instance network_timeout_ms \
+              db_type peer_address statement_timeout_ms \
+        -hl body text --input "$pipe" --file "$log_file" &
+    
+    local log_pid=$!
+
+    "$BINARY" -c "$CONFIG" --config_vars="$CONFIG_VARS" > "$pipe" 2>&1
+    
+    wait $log_pid
+    rm -f "$pipe"
+}
+
+if [[ "$PLAIN_MODE" == true ]]; then
+    run_plain
+else
+    run_with_logging
+fi
