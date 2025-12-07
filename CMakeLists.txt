@@ -6,8 +6,7 @@ include(DownloadUserver)
 
 find_package(
     userver
-    COMPONENTS core #
-               postgresql
+    COMPONENTS core postgresql chaotic
     QUIET
 )
 if(NOT userver_FOUND)
@@ -17,21 +16,31 @@ endif()
 
 userver_setup_environment()
 
-# Common sources
-include_directories(src)
+# Sources vars
+file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.[hc]pp)
+file(GLOB_RECURSE UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp)
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 
-add_library(
-    ${PROJECT_NAME}_objs OBJECT
-    src/greeting.cpp #
-    src/hello.cpp #
-    src/hello_postgres.cpp
-)
+add_library(${PROJECT_NAME}_objs OBJECT ${SOURCES})
+include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(
     ${PROJECT_NAME}_objs
-    PUBLIC userver::core #
-           userver::postgresql
+    PUBLIC userver::core userver::postgresql
 )
 
+# Chaotic
+file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/chaotic/*.yaml)
+userver_target_generate_chaotic(${PROJECT_NAME}-chgen
+    LAYOUT "/components/schemas/([^/]*)/=posty::handlers::{0}"
+    GENERATE_SERIALIZERS
+    OUTPUT_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/src
+    SCHEMAS
+    ${SCHEMAS}
+    RELATIVE_TO
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC ${PROJECT_NAME}-chgen)
 
 # The Service
 add_executable(${PROJECT_NAME} src/main.cpp)

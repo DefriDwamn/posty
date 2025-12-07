@@ -1,22 +1,19 @@
 # posty
 
-Template of a C++ service that uses [userver framework](https://github.com/userver-framework/userver).
+C++ service that uses [userver framework](https://github.com/userver-framework/userver).
 
+CMS for blogs.
 
-## Download and Build
+## Get and Build
 
-To create your own userver-based service follow the following steps:
-
-1. Press the "Use this template button" at the top right of this GitHub page
-2. Clone the service `git clone your-service-repo && cd your-service-repo && git submodule update --init`
-3. Give a proper name to your service and replace all the occurrences of "posty" string with that name
-4. Feel free to tweak, adjust or fully rewrite the source code of your service.
-
+1. Clone this repo
+2. Open repo folder wih devcontainer (in VSCode or CLion)
+3. `make build-{debug/release}`
+3. exec `./scripts/start-service`
 
 ## Makefile
 
-`PRESET` is either `debug`, `release`, or if you've added custom presets in `CMakeUserPresets.json`, it
-can also be `debug-custom`, `release-custom`.
+`PRESET` is either `debug`, `release`
 
 * `make cmake-PRESET` - run cmake configure, update cmake options and source file lists
 * `make build-PRESET` - build the service
