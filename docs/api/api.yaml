@@ -386,5 +386,3 @@ components:
       required:
         - username
         - following
-        - bio
-        - image
