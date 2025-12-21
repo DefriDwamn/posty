@@ -2,8 +2,8 @@ worker-threads: 4
 worker-fs-threads: 2
 logger-level: info
 
-is-testing: false
+is_testing: false
 
 server-port: 8080
 
-pg-connection: postgresql://posty_user:posty_pass@localhost:5432/posty_db_1
+dbconnection: 'postgresql://posty_user:password@localhost:5432/posty_db-1'

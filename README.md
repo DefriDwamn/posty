@@ -2,14 +2,13 @@
 
 C++ service that uses [userver framework](https://github.com/userver-framework/userver).
 
-CMS for blogs.
-
 ## Get and Build
 
 1. Clone this repo
 2. Open repo folder wih devcontainer (in VSCode or CLion)
 3. `make build-{debug/release}`
-3. exec `./scripts/start-service`
+4. service postgresql start
+5. exec `./scripts/start-service`
 
 ## Makefile
 
@@ -26,6 +25,18 @@ CMS for blogs.
 * `make docker-COMMAND` - run `make COMMAND` in docker environment
 * `make docker-clean-data` - stop docker containers
 
+## For development
+
+1. change password for users (root, postgres)
+2. start and create user with db
+```bash
+sudo service postgres start
+psql -h localhost -U postgres -W -f ./postgresql/createdb.sql
+```
+3. create tables and funcs
+```bash
+psql -h localhost -U posty_user -W -d posty_db-1 -f ./postgresql/schemas/db-1.sql
+```
 
 ## License
 
