@@ -9,8 +9,8 @@ Comment Comment::Parse(const posty::models::CachedComment& cachedComment, std::o
     comment.updatedAt = cachedComment.updated_at;
     comment.createdAt = cachedComment.created_at;
     comment.author.username = cachedComment.author.username;
-    comment.author.bio = cachedComment.author.bio;
-    comment.author.image = cachedComment.author.image;
+    comment.author.bio = cachedComment.author.bio ? cachedComment.author.bio.value() : std::string{};
+    comment.author.image = cachedComment.author.image ? cachedComment.author.image.value() : std::string{};
     comment.author.following = !userId.has_value() ? false : cachedComment.following.count(*userId);
     return comment;
 }

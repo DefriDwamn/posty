@@ -34,8 +34,8 @@ Article Article::Parse(const models::FullArticleInfo& model, std::optional<std::
     article.isFavorited =
         authUserId ? model.articleFavoritedByUserIds.find(authUserId.value()) != model.articleFavoritedByUserIds.end()
                    : false;
-    article.profile.bio = model.authorInfo.bio;
-    article.profile.image = model.authorInfo.image;
+    article.profile.bio = model.authorInfo.bio ? model.authorInfo.bio.value() : std::string{};
+    article.profile.image = model.authorInfo.image ? model.authorInfo.image.value() : std::string{};
     article.profile.username = model.authorInfo.username;
     article.profile.following =
         authUserId ? model.authorFollowedByUsersIds.find(authUserId.value()) != model.authorFollowedByUsersIds.end()
